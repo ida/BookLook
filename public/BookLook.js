@@ -41,7 +41,7 @@ function BookLook(element,
 
   pageHeight = null,       // in px, if null default to visible height of book-ele
 
-  cssSelectorPrefix='book' // className set on book, we'll prepend all style-rules with it
+  bookClassName='book' // className set on book, we'll prepend all style-rules with it
   
 
 // Example
@@ -63,28 +63,24 @@ function BookLook(element,
 
 
 
-var book = null         // we want to create a book
+var book = null
 
 var page = null         // a book consists of pages
+
+var paragraphs = []
 
 var paragraph = null    // a page consists of paragraphs
 
 
 
-function addBook() {
-  book = document.createElement('div')
-  book.className = cssSelectorPrefix
-  element.parentNode.insertBefore(book, element)
-}
 function addPage() {
-  page = document.createElement('div')
+  // Insert new page next to current page.
+  // For first page insert as first child of book.
+  var newPage = document.createElement('div')
+  if(page === null) book.insertBefore(newPage, book.firstChild)
+  else book.insertBefore(newPage, page.nextElementSibling)
+  page = newPage
   page.className = 'page'
-  book.appendChild(page)
-}
-function addPage() {
-  page = document.createElement('div')
-  page.className = 'page'
-  book.appendChild(page)
 }
 function getBottomSpaceHeight(ele) {
   var props = ['margin-bottom', 'border-bottom-width', 'padding-bottom']
@@ -123,10 +119,13 @@ function handlePageBreak() {
     splitParaIntoTwoAtNthLineBreak(visibleLinesAmount)
   }
 }
-function fillBook(paragraphs) {
+function processParagraphs() {
   for(var i=0; i < paragraphs.length; i++) {
-    paragraph = document.createElement(element.children[i].tagName)
-    paragraph.innerHTML = element.children[i].innerHTML
+    paragraph = paragraphs[i]
+    //paragraph = document.createElement(paragraphs[i].tagName)
+    //paragraph.innerHTML = element.children[i].innerHTML
+    //var cuttedPara = paragraph.remove()
+    //page.appendChild(cuttedPara)
     page.appendChild(paragraph)
     if(page.clientHeight > pageHeight) {
       handlePageBreak(page)
@@ -138,7 +137,7 @@ function pageBroke(page) {
 }
 function setStyles() {
   
-  var bookSelector = '.' + cssSelectorPrefix
+  var bookSelector = '.' + bookClassName
   var pageSelector = bookSelector + ' .page'
   var paragraphSelector = pageSelector + ' > *'
   
@@ -195,14 +194,22 @@ function setStyles() {
 }
 function setVariables() {
   // Set default values for the global-vars within the scope of BookLook()
+
+  // Passable parameters:
   if(pagesPerBookWidth === null) {
     if(pageWidth === null) pagesPerBookWidth = 1
     else pagesAmount = element.width / pagesPerBookWidth
   }
   if(pageHeight === null) pageHeight = element.clientHeight
   if(pageWidth  === null) pageWidth  = element.clientWidth / pagesPerBookWidth
-  addBook()
-  addPage()
+
+
+  // Other globs:
+  book = element
+  book.className = bookClassName
+  for(var i=0; i < book.children.length; i++) {
+    paragraphs.push(book.children.item(i))
+  }
 }
 function getAmountOfVisibleLinesOfPara() {
 
@@ -246,22 +253,18 @@ function splitParaIntoTwoAtNthLineBreak(n) {
   page.appendChild(paragraph)
 }
 function ini() {
+// Append a page to ele, move children of ele one by one into page, until page
+// breaks, repeat until all children have been processed.
 
-  element.style.visibility = 'hidden'           // hide ele
-
+  
   setVariables()
 
   setStyles()
 
-  fillBook(element.children)
+  addPage()
+  
+  processParagraphs()
 
-  element.innerHTML = ''                        // empty ele of content
-  
-  element.insertBefore(book, element.firstNode) // fill ele with book
-  
-  element.style.visibility = 'visible'          // show ele again
-
-  
 }
 
   ini()

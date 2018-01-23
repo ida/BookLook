@@ -3,51 +3,18 @@ function BookLook(element,
 // What
 // ----
 //
-// Turn a passed ele's content into a book and paginate all the children.
-//
-//
-// Usage
-// -----
-//
-// Include this script in the head-ele of your html-doc, then call BookLook
-// off one of your Javascripts after DOM loaded and pass any element to it:
-//
-//
-//    var element = document.body
-//
-//    BookLook(element)
-//
-//
-// Optionally pass these parameters, too:
-
-
-  pagesPerBookWidth = null, // nr, default to 1 unless pageWidth is passed,
-                            // then squeeze as much pages as fit in bookWidth
-
-  pageWidth = null,         // px, default to bookWidth/pagesPerBookWidth
-
-
-  pageHeight = null,        // px, default to visible height of book
-
-
-  cssSelectorPrefix='book'  // className of book, prepended to all style-rules
-
-
-// Example for two-column-layout with fixed width and full visible height:
-//
-//    BookLook(element, 2, 333, null)
-//
+// Turn a passed ele's content into a book-look: Paginate all the children.
 //
 //
 // How
 // ---
 //
-// Create a page-ele, prepend it to children of passed ele, fill page-ele
-// with following siblings until wanted pageHeight breaks, create new page-ele,
-// repeat until there are no more folliwing siblings.
+// Create a book-ele, prepend it to passed ele, add a page-ele in book-ele.
 //
-// If a page breaks in the middle of a child-ele, split child into two and move
-// second child onto next page.
+// For each child in passed ele, insert copy of child into current page,
+// measure current page-height until page breaks after given page-height.
+//
+// Then create new page and repeat until all children are processed.
 //
 //
 // Why
@@ -56,6 +23,34 @@ function BookLook(element,
 // https://twitter.com/ldanielswakman/status/953225103017435136
 // "Looking for a way for a variable block of text to automatically
 // flow to a required number of columns (...) Column height/width defined."
+//
+//
+// Usage
+// -----
+//
+// Off one of your Javascripts call BookLook and pass an element to it:
+//
+//    BookLook(element)
+//
+//
+// Optionally pass these parameters, too:
+  
+  pagesPerBookWidth = null, // amounts of columns, if null defaults to 1 unless pageWidth is passed
+  
+  pageWidth = null,        // in px, if null default to bookWidth/pagesPerBookWidth
+
+  pageHeight = null,       // in px, if null default to visible height of book-ele
+
+  cssSelectorPrefix='book' // className set on book, we'll prepend all style-rules with it
+  
+
+// Example
+// -------
+//
+// Example for two-column-layout with fixed width and full visible height:
+//
+//    BookLook(element, 2, 333, null)
+//
 //
 //
 //
@@ -68,28 +63,16 @@ function BookLook(element,
 
 
 
-var book = null         // we want to create a book
-
 var page = null         // a book consists of pages
 
 var paragraph = null    // a page consists of paragraphs
 
 
 
-function addBook() {
-  book = document.createElement('div')
-  book.className = cssSelectorPrefix
-  element.appendChild(book)
-}
-function addFirstPage() {
-  page = document.createElement('div')
-  page.className = 'page'
-  book.appendChild(page)
-}
 function addPage() {
   page = document.createElement('div')
   page.className = 'page'
-  book.appendChild(page)
+  element.appendChild(page)
 }
 function getBottomSpaceHeight(ele) {
   var props = ['margin-bottom', 'border-bottom-width', 'padding-bottom']
@@ -128,9 +111,9 @@ function handlePageBreak() {
     splitParaIntoTwoAtNthLineBreak(visibleLinesAmount)
   }
 }
-function fillBook(paragraphs) {
-  for(var i=0; i < paragraphs.length; i++) {
-    paragraph = document.createElement(element.children[i].tagName)
+function fillBook(paragraphs, paragraphsAmount) {
+  for(var i=0; i < paragraphsAmount; i++) {
+    paragraph = document.createElement(paragraphs[i].tagName)
     paragraph.innerHTML = element.children[i].innerHTML
     page.appendChild(paragraph)
     if(page.clientHeight > pageHeight) {
@@ -141,13 +124,8 @@ function fillBook(paragraphs) {
 function pageBroke(page) {
   return page.clientHeight > pageHeight
 }
-function setContent() {
-  // Add initial content.
-  addBook()
-  addPage()
-}
 function setStyles() {
-  // Add styles as style-ele in head-ele.
+  
   var bookSelector = '.' + cssSelectorPrefix
   var pageSelector = bookSelector + ' .page'
   var paragraphSelector = pageSelector + ' > *'
@@ -166,7 +144,7 @@ function setStyles() {
 
 
 ` + pageSelector + ` {
-  counter-increment: pagenr;
+  counter-increment: pagenumber;
   display: inline-block;
   margin: 1em;
   min-height: ` + pageHeight + `px;
@@ -179,13 +157,13 @@ function setStyles() {
 }
 
 
+/*
 ` + pageSelector + `:after {
-  content: counter(pagenr);
+  content: counter(pagenumber);
   position: absolute;
-  margin-top: -1em;
   left: ` + pageWidth / 2 + `px;
 }
-
+*/
 
 ` + paragraphSelector + `:first-child {
   padding-top: 0;
@@ -203,25 +181,14 @@ function setStyles() {
   styleEle.innerHTML = styles
   document.head.appendChild(styleEle)
 }
-function setParamaterDefaults() {
-//
-//  Set default values for the passable vars of BookLook.
-//
-  var bookWidth = element.clientWidth
+function setVariables() {
+  // Set default values for the global-vars within the scope of BookLook()
   if(pagesPerBookWidth === null) {
-    if(pageWidth === null) {
-      pagesPerBookWidth = 1
-    }
-    else {
-      pagesPerBookWidth = bookWidth / pageWidth
-    }
+    if(pageWidth === null) pagesPerBookWidth = 1
+    else pagesAmount = element.width / pagesPerBookWidth
   }
-  if(pageHeight === null) {
-    pageHeight = element.clientHeight
-  }
-  if(pageWidth === null) {
-    pageWidth = bookWidth / pagesPerBookWidth
-  }
+  if(pageHeight === null) pageHeight = element.clientHeight
+  if(pageWidth  === null) pageWidth  = element.clientWidth / pagesPerBookWidth
 }
 function getAmountOfVisibleLinesOfPara() {
 
@@ -245,7 +212,7 @@ function splitParaIntoTwoAtNthLineBreak(n) {
   var lineHeight = getStyle(paragraph, 'line-height')
   var text = paragraph.innerHTML
   var newText = ''
-  var breakPos = text.length-1 // remember pos of last space for splitpoint at linebreak
+  var breakPos = text.length-1 // pos of last space for splitpoint at linebreak
   paragraph.innerHTML = ''
   for(var i=0; i < text.length; i++) {
     var character = text[i]
@@ -265,26 +232,21 @@ function splitParaIntoTwoAtNthLineBreak(n) {
   page.appendChild(paragraph)
 }
 function ini() {
+// Append a page to ele, move children of ele one by one into page, until page
+// breaks, repeat until all children have been processed.
+  var paragraphsAmount = element.children.length
 
-  element.style.visibility = 'hidden'           // hide ele
+  element.className = cssSelectorPrefix
 
- 
-  setParamaterDefaults()
+  setVariables()
 
   setStyles()
 
-  setContent()
- 
- 
-  fillBook(element.children)
+  addPage()
+  
+  fillBook(element.children, paragraphsAmount)
 
-
-  element.innerHTML = ''                        // empty ele of content
- 
-  element.insertBefore(book, element.firstNode) // fill ele with book
- 
-  element.style.visibility = 'visible'          // show ele again
-
+  
 }
 
   ini()
