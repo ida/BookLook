@@ -156,7 +156,7 @@ function setStyles() {
 
 
 ` + pageSelector + ` {
-  counter-increment: pagenr;
+  counter-increment: pagenumber;
   display: inline-block;
   margin: 1em;
   min-height: ` + pageHeight + `px;
@@ -169,12 +169,13 @@ function setStyles() {
 }
 
 
+/*
 ` + pageSelector + `:after {
-  content: counter(pagenr);
+  content: counter(pagenumber);
   position: absolute;
   left: ` + pageWidth / 2 + `px;
 }
-
+*/
 
 ` + paragraphSelector + `:first-child {
   padding-top: 0;
