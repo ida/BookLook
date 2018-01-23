@@ -35,13 +35,13 @@ function BookLook(element,
 //
 // Optionally pass these parameters, too:
   
-  pagesPerBookWidth = null, // amounts of columns, if null defaults to 1 unless pageWidth is passed
+  pagesPerBookWidth = null, // nr, default to 1 unless pageWidth is passed
   
-  pageWidth = null,        // in px, if null default to bookWidth/pagesPerBookWidth
+  pageWidth = null,         // px, if null default to bookWidth/pagesPerBookWidth
 
-  pageHeight = null,       // in px, if null default to visible height of book-ele
+  pageHeight = null,        // px, if null default to visible height of book-ele
 
-  bookClassName='book' // className set on book, we'll prepend all style-rules with it
+  bookClassName = 'book'    // str, we'll prepend all css-rules with it
   
 
 // Example
@@ -63,13 +63,13 @@ function BookLook(element,
 
 
 
-var book = null
+var book = null         // defaults to passed element
 
 var page = null         // a book consists of pages
 
-var paragraphs = []
-
 var paragraph = null    // a page consists of paragraphs
+
+var paragraphs = []     // all paragraphs stored away for processing
 
 
 
@@ -80,7 +80,6 @@ function addPage() {
   if(page === null) book.insertBefore(newPage, book.firstChild)
   else book.insertBefore(newPage, page.nextElementSibling)
   page = newPage
-  page.className = 'page'
 }
 function getBottomSpaceHeight(ele) {
   var props = ['margin-bottom', 'border-bottom-width', 'padding-bottom']
@@ -122,10 +121,6 @@ function handlePageBreak() {
 function processParagraphs() {
   for(var i=0; i < paragraphs.length; i++) {
     paragraph = paragraphs[i]
-    //paragraph = document.createElement(paragraphs[i].tagName)
-    //paragraph.innerHTML = element.children[i].innerHTML
-    //var cuttedPara = paragraph.remove()
-    //page.appendChild(cuttedPara)
     page.appendChild(paragraph)
     if(page.clientHeight > pageHeight) {
       handlePageBreak(page)
@@ -138,22 +133,17 @@ function pageBroke(page) {
 function setStyles() {
   
   var bookSelector = '.' + bookClassName
-  var pageSelector = bookSelector + ' .page'
+  var pageSelector = bookSelector + ' > *'
   var paragraphSelector = pageSelector + ' > *'
   
   var styleEle = document.createElement('style')
-  var styles = `
+  var styles =
 
-
-
-` + bookSelector + ` {
+bookSelector + ` {
     background: #000;
     color: #fff;
     counter-reset: pagenr;
 }
-
-
-
 ` + pageSelector + ` {
   counter-increment: pagenumber;
   display: inline-block;
@@ -166,8 +156,6 @@ function setStyles() {
   vertical-align: top;
   width: ` + pageWidth + `px;
 }
-
-
 /*
 ` + pageSelector + `:after {
   content: counter(pagenumber);
@@ -175,19 +163,14 @@ function setStyles() {
   left: ` + pageWidth / 2 + `px;
 }
 */
-
 ` + paragraphSelector + `:first-child {
   padding-top: 0;
   margin-top: 0;
 }
-
-
 ` + paragraphSelector + `:last-child {
   padding-bottom: 0;
   margin-bottom: 0;
 }
-
-
   ` // EO styles
   styleEle.innerHTML = styles
   document.head.appendChild(styleEle)
@@ -229,7 +212,9 @@ function getAmountOfVisibleLinesOfPara() {
   return visibleLinesAmount
 }
 function splitParaIntoTwoAtNthLineBreak(n) {
-// Refill para with text char by char until nth line breaks.
+// Refill para with text char by char until nth line breaks,
+// split text in two paras, create next page, add second para
+// to new page.
   var lineHeight = getStyle(paragraph, 'line-height')
   var text = paragraph.innerHTML
   var newText = ''
@@ -240,8 +225,8 @@ function splitParaIntoTwoAtNthLineBreak(n) {
     if(character == ' ') breakPos = i
     paragraph.innerHTML += character
     if(paragraph.clientHeight > lineHeight * n) {i
-      if(breakPos === null) {  // in case no space was found before pagebreak ...
-        breakPos = i           // ... breakPos is current pos
+      if(breakPos === null) {  // in case no space was found before pagebreak...
+        breakPos = i           // ...breakPos is current pos
       }
       break
     }
@@ -253,16 +238,16 @@ function splitParaIntoTwoAtNthLineBreak(n) {
   page.appendChild(paragraph)
 }
 function ini() {
-// Append a page to ele, move children of ele one by one into page, until page
-// breaks, repeat until all children have been processed.
+// Append a page to ele, move children of ele one by one into page,
+// until page breaks. Repeat until all children have been processed.
 
-  
+ 
   setVariables()
 
   setStyles()
 
   addPage()
-  
+ 
   processParagraphs()
 
 }
