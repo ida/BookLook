@@ -6,24 +6,6 @@ function BookLook(element,
 // Turn a passed ele's content into a book-look: Paginate all the children.
 //
 //
-// How
-// ---
-//
-// Create a book-ele, prepend it to passed ele, add a page-ele in book-ele.
-//
-// For each child in passed ele, insert copy of child into current page,
-// measure current page-height until page breaks after given page-height.
-//
-// Then create new page and repeat until all children are processed.
-//
-//
-// Why
-// ---
-//
-// https://twitter.com/ldanielswakman/status/953225103017435136
-// "Looking for a way for a variable block of text to automatically
-// flow to a required number of columns (...) Column height/width defined."
-//
 //
 // Usage
 // -----
@@ -35,14 +17,14 @@ function BookLook(element,
 //
 // Optionally pass these parameters, too:
   
-  pagesPerBookWidth = null, // nr, default to 1 unless pageWidth is passed
+  pagesPerBookWidth = null, // nr, defaults to 1 unless pageWidth is passed
   
-  pageWidth = null,         // px, if null default to bookWidth/pagesPerBookWidth
+  pageWidth = null,         // px, defaults to bookWidth/pagesPerBookWidth
 
-  pageHeight = null,        // px, if null default to visible height of book-ele
+  pageHeight = null,        // px, defaults to visible height of book-ele
 
-  bookClassName = 'book'    // str, we'll prepend all css-rules with it
-  
+  bookClassName = null      // str, defaults to 'book', used for styling
+
 
 // Example
 // -------
@@ -63,193 +45,204 @@ function BookLook(element,
 
 
 
-var book = null         // defaults to passed element
 
-var page = null         // a book consists of pages
-
-var paragraph = null    // a page consists of paragraphs
-
-var paragraphs = []     // all paragraphs stored away for processing
+function setParameterDefaults() {
+// Set default values for all parameters of BookLook.
 
 
+  // pagesPerBookWidth is not set:
+  if(pagesPerBookWidth === null) {
 
-function addPage() {
-  // Insert new page next to current page.
-  // For first page insert as first child of book.
-  var newPage = document.createElement('div')
-  if(page === null) book.insertBefore(newPage, book.firstChild)
-  else book.insertBefore(newPage, page.nextElementSibling)
-  page = newPage
-}
-function getBottomSpaceHeight(ele) {
-  var props = ['margin-bottom', 'border-bottom-width', 'padding-bottom']
-  var height = getSumOfCssProps(ele, props)
-  return height
-}
-function getStyle(ele, prop) {
-  return parseFloat(window.getComputedStyle(ele).getPropertyValue(prop))
-}
-function getSumOfCssProps(ele, props) {
-  var sum = 0
-  for(var i=0; i < props.length; i++) {
-    var prop = props[i]
-    var value = parseFloat(getStyle(ele, prop))
-    sum += value
-  }
-  return sum
-}
-function getTextHeight(ele) {
-  // ele.clientHeight = inner height of an element in pixels, including padding
-  //                 but not the horizontal scrollbar height, border, or margin
-  var props = ['padding-top', 'padding-bottom']
-  var height = getSumOfCssProps(ele, props) * -1
-  height += ele.clientHeight
-  return height
-}
-function getTopSpaceHeight(ele) {
-  var props = ['margin-top', 'border-top-width', 'padding-top']
-  var height = getSumOfCssProps(ele, props)
-  return height
-}
-function handlePageBreak() {
-  var visibleLinesAmount = getAmountOfVisibleLinesOfPara()
-  paragraph = page.children[page.children.length-1]
-  if(visibleLinesAmount > 0) {
-    splitParaIntoTwoAtNthLineBreak(visibleLinesAmount)
-  }
-}
-function processParagraphs() {
-  for(var i=0; i < paragraphs.length; i++) {
-    paragraph = paragraphs[i]
-    page.appendChild(paragraph)
-    if(page.clientHeight > pageHeight) {
-      handlePageBreak(page)
+    // if pageWidth is set...
+    if(pageWidth !== null) {
+      
+      // ... pagesPerBookWidth is as much pages as fit into bookWidth:
+      pagesPerBookWidth = element.width / pagesPerBookWidth
+    }
+    // otherwise default to one page per bookWidth:
+    else {
+      pagesPerBookWidth = 1
+    
     }
   }
-}
-function pageBroke(page) {
-  return page.clientHeight > pageHeight
-}
-function setStyles() {
+
+
+  // pageHeight is not set:
+  if(pageHeight === null) {
+
+    // default to visible bookHeight:
+    pageHeight = element.clientHeight
+
+  }
   
+
+  // pageWidth is not set:
+  if(pageWidth === null) {
+    
+    // default to possible max-width in rel to pagesPerBookWidth:
+    pageWidth = element.clientWidth / pagesPerBookWidth
+
+  }
+
+
+  // bookClassName is not set or an empty string was passed:
+  if(bookClassName == null || bookClassName == '') {
+  
+    // default to book:  
+    bookClassName = 'book'
+  
+  }
+
+}
+
+
+
+function setStyles() {
+
+  // Set style-class on book:
+  element.className = bookClassName
+
+  // Prepare selectors:
   var bookSelector = '.' + bookClassName
   var pageSelector = bookSelector + ' > *'
   var paragraphSelector = pageSelector + ' > *'
+  var firstParagraphSelector = paragraphSelector + ':first-child'
+  var lastParagraphSelector  = paragraphSelector + ':last-child'
   
+  // Create style-ele:
   var styleEle = document.createElement('style')
+
+  // Prepare styles-string:
   var styles =
+    
 
-bookSelector + ` {
-    background: #000;
-    color: #fff;
-    counter-reset: pagenr;
-}
-` + pageSelector + ` {
-  counter-increment: pagenumber;
-  display: inline-block;
-  margin: 1em;
-  min-height: ` + pageHeight + `px;
-  position: relative;
-  top: 0;
-  left: 0;
-  outline: 1px dotted #555;
-  vertical-align: top;
-  width: ` + pageWidth + `px;
-}
-/*
-` + pageSelector + `:after {
-  content: counter(pagenumber);
-  position: absolute;
-  left: ` + pageWidth / 2 + `px;
-}
-*/
-` + paragraphSelector + `:first-child {
-  padding-top: 0;
-  margin-top: 0;
-}
-` + paragraphSelector + `:last-child {
-  padding-bottom: 0;
-  margin-bottom: 0;
-}
-  ` // EO styles
+    bookSelector + ` {
+      background: #000;
+      color: #fff;
+    } ` +
+    
+
+    pageSelector + ` {
+
+      display: inline-block;
+      width: ` + pageWidth + `px;
+      min-height: ` + pageHeight + `px;
+      margin: 1em;
+      outline: 1px dotted #555;
+      vertical-align: top;
+
+    } ` +
+    
+
+
+    firstParagraphSelector + ` {
+      padding-top: 0;
+      margin-top: 0;
+
+    } ` +
+    
+
+    lastParagraphSelector + ` {
+      padding-bottom: 0;
+      margin-bottom: 0;
+
+    } ` // EO styles
+
+
+  // Insert styles into style-ele:
   styleEle.innerHTML = styles
+
+
+  // Append style-ele into head-ele:
   document.head.appendChild(styleEle)
+
 }
-function setVariables() {
-  // Set default values for the global-vars within the scope of BookLook()
-
-  // Passable parameters:
-  if(pagesPerBookWidth === null) {
-    if(pageWidth === null) pagesPerBookWidth = 1
-    else pagesAmount = element.width / pagesPerBookWidth
-  }
-  if(pageHeight === null) pageHeight = element.clientHeight
-  if(pageWidth  === null) pageWidth  = element.clientWidth / pagesPerBookWidth
 
 
-  // Other globs:
-  book = element
-  book.className = bookClassName
-  for(var i=0; i < book.children.length; i++) {
-    paragraphs.push(book.children.item(i))
-  }
+function pageBroke(page) {
+  return page.clientHeight > pageHeight
 }
-function getAmountOfVisibleLinesOfPara() {
 
-  var visibleLinesAmount = 0
 
-  var lineHeight = getStyle(paragraph, 'line-height')
+function fillPage(page, paragraphs) {
+// Fill page para by para until page breaks, return remaining paras.
 
-  var pageContentHeight = getTextHeight(page)
+  var paragraph = null
+  var textOverflow = null
 
-  pageContentHeight -= getTextHeight(paragraph)
-
-  while(pageContentHeight < pageHeight) {
-    pageContentHeight  += lineHeight
-    visibleLinesAmount += 1
+  // Until page breaks and there are paragraphs to process:
+  while(pageBroke(page) === false && paragraphs.length > 0) {
+    // Remove and return 1st item of array:
+    paragraph = paragraphs.shift()
+    // Append it to page:
+    page.appendChild(paragraph)
   }
 
-  return visibleLinesAmount
+
+  // After page broke, switch context to latest paragraph of page:
+  paragraph = page.children[page.children.length-1]
+  
+  
+  // There's overflowing text:
+  textOverflow = refillParagraph(paragraph)
+  if(textOverflow.length > 0) {
+    // Create and append new page:
+    page.parentNode.insertBefore(document.createElement(page.tagName), page.nextElementSibling)
+    // Switch context to new page:
+    page = page.nextElementSibling
+    // Create new paragraph:
+    paragraph = document.createElement(paragraph.tagName)
+    // Add textOverflow to new paragraph:
+    paragraph.innerHTML = textOverflow
+    // Append new paragraph to page:
+    page.appendChild(paragraph)
+    // Repeat this function, if there are paragraphs left to process:
+    if(paragraphs.length > 0) {
+      fillPage(page, paragraphs)
+    }
+  }
 }
-function splitParaIntoTwoAtNthLineBreak(n) {
-// Refill para with text char by char until nth line breaks,
-// split text in two paras, create next page, add second para
-// to new page.
-  var lineHeight = getStyle(paragraph, 'line-height')
+function refillParagraph(paragraph) {
+// Empty para of text and refill char by char until page breaks.
+// Return leftpver-text.
+  var breakPos = null // last pos before pageBreak where we can split para
   var text = paragraph.innerHTML
-  var newText = ''
-  var breakPos = text.length-1 // pos of last space for splitpoint at linebreak
   paragraph.innerHTML = ''
   for(var i=0; i < text.length; i++) {
-    var character = text[i]
-    if(character == ' ') breakPos = i
-    paragraph.innerHTML += character
-    if(paragraph.clientHeight > lineHeight * n) {i
-      if(breakPos === null) {  // in case no space was found before pagebreak...
-        breakPos = i           // ...breakPos is current pos
-      }
+    var chara = text[i]
+    if(chara == ' ') breakPos = i
+    paragraph.innerHTML += chara
+    if(pageBroke(paragraph.parentNode) === true) {
+      if(breakPos === null) breakPos = i
       break
     }
   }
   paragraph.innerHTML = text.slice(0, breakPos)
-  paragraph = document.createElement(paragraph.tagName)
-  paragraph.innerHTML = text.slice(breakPos)
-  addPage()
-  page.appendChild(paragraph)
+  return text.slice(breakPos, text.length-1)
 }
 function ini() {
-// Append a page to ele, move children of ele one by one into page,
-// until page breaks. Repeat until all children have been processed.
 
- 
-  setVariables()
+
+  
+  setParameterDefaults()
 
   setStyles()
 
-  addPage()
- 
-  processParagraphs()
 
+  // Store paragraphs away before we change the DOM:
+  var paragraphs = []
+  for(var i=0; i < element.children.length; i++) {
+    paragraphs.push(element.children.item(i))
+  }
+
+  // Create first page ad prepend it into book:
+  var page = document.createElement('div')
+  element.insertBefore(page, element.firstChild)
+
+
+  // Fill it until unfinity:
+  fillPage(page, paragraphs)
+ 
 }
 
   ini()

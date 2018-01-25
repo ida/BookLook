@@ -15,6 +15,4 @@ document.addEventListener('DOMContentLoaded', function(eve) {
   // Execute:
   BookLook(ele, pagesPerBookWidth, pageWidth, pageHeight)
 
-
-
 }); // DOM loaded
