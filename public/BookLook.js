@@ -165,28 +165,32 @@ function pageBroke(page) {
 
 
 function fillPage(page, paragraphs) {
-// Fill page para by para until page breaks, return remaining paras.
+// Fill page paragraph by paragraph until page breaks.
+// Then create new page and transfer overflowing text to it.
+// Repeat this function until all paragraphs are processed.
+
 
   var paragraph = null
   var textOverflow = null
 
-  // Until page breaks and there are paragraphs to process:
+
+  // Until page breaks and as long as there are paragraphs to process:
   while(pageBroke(page) === false && paragraphs.length > 0) {
-    // Remove and return 1st item of array:
+
+    // Remove first paragraph of array and append it into page:
     paragraph = paragraphs.shift()
-    // Append it to page:
     page.appendChild(paragraph)
   }
 
 
-  // After page broke, switch context to latest paragraph of page:
+  // Refetch paragraph after moving it in the DOM with appendChild():
   paragraph = page.children[page.children.length-1]
   
   
   // There's overflowing text:
   textOverflow = refillParagraph(paragraph)
   if(textOverflow.length > 0) {
-    // Create and append new page:
+    // Create and insert new page next to current page:
     page.parentNode.insertBefore(document.createElement(page.tagName), page.nextElementSibling)
     // Switch context to new page:
     page = page.nextElementSibling
@@ -204,7 +208,7 @@ function fillPage(page, paragraphs) {
 }
 function refillParagraph(paragraph) {
 // Empty para of text and refill char by char until page breaks.
-// Return leftpver-text.
+// Return leftover-text.
   var breakPos = null // last pos before pageBreak where we can split para
   var text = paragraph.innerHTML
   paragraph.innerHTML = ''
@@ -223,7 +227,6 @@ function refillParagraph(paragraph) {
 function ini() {
 
 
-  
   setParameterDefaults()
 
   setStyles()
