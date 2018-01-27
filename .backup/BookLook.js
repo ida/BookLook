@@ -6,24 +6,6 @@ function BookLook(element,
 // Turn a passed ele's content into a book-look: Paginate all the children.
 //
 //
-// How
-// ---
-//
-// Create a book-ele, prepend it to passed ele, add a page-ele in book-ele.
-//
-// For each child in passed ele, insert copy of child into current page,
-// measure current page-height until page breaks after given page-height.
-//
-// Then create new page and repeat until all children are processed.
-//
-//
-// Why
-// ---
-//
-// https://twitter.com/ldanielswakman/status/953225103017435136
-// "Looking for a way for a variable block of text to automatically
-// flow to a required number of columns (...) Column height/width defined."
-//
 //
 // Usage
 // -----
@@ -41,8 +23,8 @@ function BookLook(element,
 
   pageHeight = null,        // px, defaults to visible height of book-ele
 
-  bookClassName = 'book'    // str, we will prepend all css-rules with it
-  
+  bookClassName = null      // str, defaults to 'book', used for styling
+
 
 // Example
 // -------
@@ -65,6 +47,8 @@ function BookLook(element,
 
 
 function setParameterDefaults() {
+// Set default values for all parameters of BookLook.
+
 
   // pagesPerBookWidth is not set:
   if(pagesPerBookWidth === null) {
@@ -98,6 +82,15 @@ function setParameterDefaults() {
     // default to possible max-width in rel to pagesPerBookWidth:
     pageWidth = element.clientWidth / pagesPerBookWidth
 
+  }
+
+
+  // bookClassName is not set or an empty string was passed:
+  if(bookClassName == null || bookClassName == '') {
+  
+    // default to book:  
+    bookClassName = 'book'
+  
   }
 
 }
@@ -164,73 +157,50 @@ function setStyles() {
   document.head.appendChild(styleEle)
 
 }
-function splitParaIntoTwoAtNthLineBreak(page, paragraph, n) {
-// Refill para with text char by char until nth line breaks,
-// split text in two paras, create next page, add second para
-// to new page.
-  var lineHeight = getStyle(paragraph, 'line-height')
-  var text = paragraph.innerHTML
-  var breakPos = text.length-1 // pos of last space for splitpoint at linebreak
-  paragraph.innerHTML = ''
-  for(var i=0; i < text.length; i++) {
-    var character = text[i]
-    if(character == ' ') breakPos = i
-    paragraph.innerHTML += character
-    if(paragraph.clientHeight > lineHeight * n) {i
-      if(breakPos === null) {  // in case no space was found before pagebreak...
-        breakPos = i           // ...breakPos is current pos
-      }
-      break
-    }
-  }
-  paragraph.innerHTML = text.slice(0, breakPos)
-  paragraph = document.createElement(paragraph.tagName)
-  paragraph.innerHTML = text.slice(breakPos)
-/*DEV
-                              page.style.height = pageHeight + 'px'
-                              page.style.overflow = 'hidden'
-*/
-  page.appendChild(paragraph)
-}
 
 
-
-
-
-
-
-
-function getCurrentHeight(page) {
-  return page.clientHeight
-}
 function pageBroke(page) {
-  return getCurrentHeight(page) > pageHeight
+  return page.clientHeight > pageHeight
 }
 
 
 function fillPage(page, paragraphs) {
-// Fill page para by para until page breaks, return remaining paras.
+// Fill page paragraph by paragraph until page breaks.
+// Then create new page and transfer overflowing text to it.
+// Repeat this function until all paragraphs are processed.
+
+
   var paragraph = null
-  while(pageBroke(page) === false) { // until page breaks
-    paragraph = paragraphs.shift()  //  remove and return 1st item of array
-    if(paragraph !== undefined) page.appendChild(paragraph)    //   append item to page
-    else break
+  var textOverflow = null
+
+
+  // Until page breaks and as long as there are paragraphs to process:
+  while(pageBroke(page) === false && paragraphs.length > 0) {
+
+    // Remove first paragraph of array and append it into page:
+    paragraph = paragraphs.shift()
+    page.appendChild(paragraph)
   }
 
 
-  // After page broke, switch context to latest paragraph of page:
+  // Refetch paragraph after moving it in the DOM with appendChild():
   paragraph = page.children[page.children.length-1]
   
   
-  var textOverflow = refillParagraph(paragraph)
+  // There's overflowing text:
+  textOverflow = refillParagraph(paragraph)
   if(textOverflow.length > 0) {
-    // Add new page:
+    // Create and insert new page next to current page:
     page.parentNode.insertBefore(document.createElement(page.tagName), page.nextElementSibling)
     // Switch context to new page:
     page = page.nextElementSibling
+    // Create new paragraph:
     paragraph = document.createElement(paragraph.tagName)
+    // Add textOverflow to new paragraph:
     paragraph.innerHTML = textOverflow
+    // Append new paragraph to page:
     page.appendChild(paragraph)
+    // Repeat this function, if there are paragraphs left to process:
     if(paragraphs.length > 0) {
       fillPage(page, paragraphs)
     }
@@ -238,8 +208,8 @@ function fillPage(page, paragraphs) {
 }
 function refillParagraph(paragraph) {
 // Empty para of text and refill char by char until page breaks.
-// Return leftpver-text.
-  var breakPos = null // last pos before pageBrea where we can split para
+// Return leftover-text.
+  var breakPos = null // last pos before pageBreak where we can split para
   var text = paragraph.innerHTML
   paragraph.innerHTML = ''
   for(var i=0; i < text.length; i++) {
@@ -256,22 +226,25 @@ function refillParagraph(paragraph) {
 }
 function ini() {
 
-  var page = null     // current page we're operating in
 
-  var paragraphs = [] // store paragraph-objects away before we change the DOM
-  for(var i=0; i < element.children.length; i++) {
-    paragraphs.push(element.children.item(i))
-  }
-  
   setParameterDefaults()
 
   setStyles()
 
-  element.insertBefore(document.createElement('div'), element.firstChild) // add 1st page
 
-  page = element.firstChild
+  // Store paragraphs away before we change the DOM:
+  var paragraphs = []
+  for(var i=0; i < element.children.length; i++) {
+    paragraphs.push(element.children.item(i))
+  }
 
-  paragraphs = fillPage(page, paragraphs)
+  // Create first page ad prepend it into book:
+  var page = document.createElement('div')
+  element.insertBefore(page, element.firstChild)
+
+
+  // Fill it until unfinity:
+  fillPage(page, paragraphs)
  
 }
 
