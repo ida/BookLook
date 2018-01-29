@@ -120,19 +120,34 @@ var pagePadding = 10
     bookSelector + ` {
       background: #000;
       color: #fff;
+      counter-reset: pagenumber;
     } ` +
     
 
     pageSelector + ` {
-
+      position: relative;
+      top: 0;
+      left: 0;
+      counter-increment: pagenumber;
       display: inline-block;
       width: ` + pageWidth + `px;
       margin: 1em;
-      padding: 1em;
+      padding: 1em 1.81em;
       outline: 1px dotted #555;
       vertical-align: top;
 
     } ` +
+
+    pageSelector + `:after {
+      content: counter(pagenumber);
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      text-align: center;
+    } ` +
+    
+    
     
 
 
@@ -239,7 +254,7 @@ function ini() {
     paragraphs.push(element.children.item(i))
   }
 
-  // Create first page ad prepend it into book:
+  // Create first page and prepend it into book:
   var page = document.createElement('div')
   element.insertBefore(page, element.firstChild)
 
